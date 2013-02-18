@@ -4,12 +4,12 @@ use 5.008001;
 use strict;
 use warnings;
 
-our $VERSION = sprintf "%d.%02d", q$Revision: 0.7 $ =~ /(\d+)/g;
+our $VERSION = sprintf "%d.%02d", q$Revision: 0.10 $ =~ /(\d+)/g;
 require XSLoader;
 XSLoader::load( 'Digest::SipHash', $VERSION );
 
 use base 'Exporter';
-our @EXPORT_OK = qw/siphash/;
+our @EXPORT_OK = qw/siphash siphash32/;
 
 use Config;
 use constant {
@@ -17,6 +17,7 @@ use constant {
     USE64BITINT => $Config{use64bitint},
 };
 push @EXPORT_OK, 'siphash64' if USE64BITINT;
+our %EXPORT_TAGS = ( all => [@EXPORT_OK] );
 our $DEFAULT_SEED = pack 'C16', map { int( rand(256) ) } ( 0 .. 0xF );
 
 sub siphash {
@@ -54,7 +55,7 @@ Digest::SipHash - Perl XS interface to the SipHash algorithm
 
 =head1 VERSION
 
-$Id: SipHash.pm,v 0.7 2013/02/17 14:48:20 dankogai Exp dankogai $
+$Id: SipHash.pm,v 0.10 2013/02/18 10:42:13 dankogai Exp $
 
 =head1 SYNOPSIS
 
@@ -86,7 +87,9 @@ given string.
 
 =head1 EXPORT
 
-C<siphash()> and C<siphash64()> by option.
+C<siphash()>, C<siphash32()> and C<siphash64()> on demand.
+
+C<:all> to all of above
 
 =head1 SUBROUTINES/METHODS
 
@@ -128,16 +131,6 @@ Available on 64-bit platforms only.
 =item xs_siphash
 
 Which actually does the job.  Should not use it directly.
-
-=back
-
-=head1 TODO
-
-=over 2
-
-=item pp_siphash
-
-Pure-Perl implementation -- not yet implemented.
 
 =back
 
@@ -183,6 +176,14 @@ L<http://search.cpan.org/dist/Digest-SipHash/>
 
 L<Hash::Util>, L<https://131002.net/siphash/>
 
+=head1 ACKNOWLEDGEMENTS
+
+B<SipHash: a fast short-input PRF>
+
+by Jean-Philippe Aumasson & Daniel J. Bernstein
+
+L<https://131002.net/siphash/>
+
 =head1 LICENSE AND COPYRIGHT
 
 =head2 csiphash.c
@@ -192,12 +193,6 @@ Copyright (c) 2013  Marek Majkowski
 MIT License L<http://opensource.org/licenses/MIT>
 
 L<https://github.com/majek/csiphash>
-
-=head2 The SipHash Algrorithm
-
-Jean-Philippe Aumasson & Daniel J. Bernstein
-
-L<https://131002.net/siphash/>
 
 =head2 The rest of this module
 

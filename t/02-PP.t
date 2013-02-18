@@ -4,7 +4,7 @@ use strict;
 use warnings FATAL => 'all';
 use Test::More;
 use Config;
-use Digest::SipHash qw/:all/;
+use Digest::SipHash::PP qw/:all/;
 plan tests => 4;
 
 my $key = pack 'C16', 0..0xf;
