@@ -31,25 +31,37 @@
 
 #include <stdint.h>
 
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#   define le64toh(x) ((uint64_t)(x))
-#elif defined(__GNUC__) || defined(__clang__)
-#   ifdef __has_builtin && __has_builtin(__builtin_bswap64)
-#       define le64toh(x) __builtin_bswap64(x)
-#   endif
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
+	__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#  define _le64toh(x) ((uint64_t)(x))
+#elif defined(_WIN32)
+/* Windows is always little endian, unless you're on xbox360
+   http://msdn.microsoft.com/en-us/library/b0084kay(v=vs.80).aspx */
+#  define _le64toh(x) ((uint64_t)(x))
+#elif defined(__APPLE__)
+#  include <libkern/OSByteOrder.h>
+#  define _le64toh(x) OSSwapLittleToHostInt64(x)
+#else
+
+/* See: http://sourceforge.net/p/predef/wiki/Endianness/ */
+#  if defined(__FreeBSD__) || defined(__NetBSD__)
+#    include <sys/endian.h>
+/* See: http://www.openbsd.org/cgi-bin/man.cgi?query=byteorder */
+#  elif defined(__OpenBSD__)
+#    include <sys/endian.h>
+#    define _le64toh(x) letoh64(x)
+#  else
+#    include <endian.h>
+#  endif
+#  if defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && \
+	__BYTE_ORDER == __LITTLE_ENDIAN
+#    define _le64toh(x) ((uint64_t)(x))
+#  else
+#    define _le64toh(x) le64toh(x)
+#  endif
+
 #endif
 
-#ifndef le64toh
-#   define le64toh(x)                                  \
-    (((uint64_t)(x) << 56) |                           \
-     (((uint64_t)(x) << 40) & 0X00FF000000000000ULL) | \
-     (((uint64_t)(x) << 24) & 0X0000FF0000000000ULL) | \
-     (((uint64_t)(x) << 8)  & 0X000000FF00000000ULL) | \
-     (((uint64_t)(x) >> 8)  & 0X00000000FF000000ULL) | \
-     (((uint64_t)(x) >> 24) & 0X0000000000FF0000ULL) | \
-     (((uint64_t)(x) >> 40) & 0X000000000000FF00ULL) | \
-     ((uint64_t)(x)  >> 56))
-#endif
 
 #define ROTATE(x, b) (uint64_t)( ((x) << (b)) | ( (x) >> (64 - (b))) )
 
@@ -68,8 +80,8 @@
 
 uint64_t siphash24(const void *src, unsigned long src_sz, const char key[16]) {
 	const uint64_t *_key = (uint64_t *)key;
-	uint64_t k0 = le64toh(_key[0]);
-	uint64_t k1 = le64toh(_key[1]);
+	uint64_t k0 = _le64toh(_key[0]);
+	uint64_t k1 = _le64toh(_key[1]);
 	uint64_t b = (uint64_t)src_sz << 56;
 	const uint64_t *in = (uint64_t*)src;
 
@@ -79,7 +91,7 @@ uint64_t siphash24(const void *src, unsigned long src_sz, const char key[16]) {
 	uint64_t v3 = k1 ^ 0x7465646279746573ULL;
 
 	while (src_sz >= 8) {
-		uint64_t mi = le64toh(*in);
+		uint64_t mi = _le64toh(*in);
 		in += 1; src_sz -= 8;
 		v3 ^= mi;
 		DOUBLE_ROUND(v0,v1,v2,v3);
@@ -96,7 +108,7 @@ uint64_t siphash24(const void *src, unsigned long src_sz, const char key[16]) {
 	case 2: pt[1] = m[1];
 	case 1: pt[0] = m[0];
 	}
-	b |= le64toh(t);
+	b |= _le64toh(t);
 
 	v3 ^= b;
 	DOUBLE_ROUND(v0,v1,v2,v3);
